@@ -2,12 +2,12 @@ from django.contrib.auth import logout, login
 from django.contrib.auth.views import LoginView
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, TemplateView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Women, Category
 from .forms import AddPostForm, RegisterUserForm, LoginUserForm
-from .utils import DataMixin
+from .utils import DataMixin, menu
 
 
 class WomenList(DataMixin, ListView):
@@ -21,7 +21,8 @@ class WomenList(DataMixin, ListView):
         return dict(list(context.items()) + list(c_def.items()))
 
     def get_queryset(self):
-        return get_list_or_404(Women, is_published=True)
+        return get_list_or_404(Women.objects.select_related('cat'), is_published=True)
+        # return Women.objects.filter(is_published=True).select_related('cat')
         # return Women.objects.filter(is_published=True)
 
 
@@ -35,8 +36,16 @@ class WomenList(DataMixin, ListView):
 #     return render(request, 'women/index.html', context=context)
 
 
-def about(request):
-    return render(request, 'women/about.html', {'title': 'Страница о нас'})
+class WomenAbout(DataMixin, TemplateView):
+    template_name = 'women/about.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_user_context(**kwargs)
+        c_def = self.get_user_context(title='О нас')
+        return dict(list(context.items()) + list(c_def.items()))
+
+# def about(request):
+#     return render(request, 'women/about.html', {'menu': menu, 'title': 'О сайте'})
 
 
 class AddPage(LoginRequiredMixin, DataMixin, CreateView):
@@ -108,7 +117,8 @@ class WomenCategory(DataMixin, ListView):
     allow_empty = False
 
     def get_queryset(self):
-        return get_list_or_404(Women, cat__slug=self.kwargs['category_slug'], is_published=True)
+        return get_list_or_404(Women.objects.select_related('cat'), cat__slug=self.kwargs['category_slug'],
+                               is_published=True)
         # return Women.objects.filter(cat__slug=self.kwargs['category_slug'], is_published=True)
 
     def get_context_data(self, *, object_list=None, **kwargs):
@@ -146,6 +156,7 @@ class RegisterUser(DataMixin, CreateView):
         user = form.save()
         login(self.request, user)
         return redirect('home')
+
 
 class LoginUser(DataMixin, LoginView):
     form_class = LoginUserForm

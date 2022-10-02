@@ -6,8 +6,8 @@ from django.views.generic import ListView, DetailView, CreateView, TemplateView,
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Women, Category
-from .forms import AddPostForm, RegisterUserForm, LoginUserForm
-from .utils import DataMixin, menu
+from .forms import AddPostForm, RegisterUserForm, LoginUserForm, ContactForm
+from .utils import DataMixin
 
 
 class WomenList(DataMixin, ListView):
@@ -79,8 +79,8 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
 #     return render(request, 'women/add_page.html', context=context)
 
 
-def contact(request):
-    return render(request, 'women/contact.html', {'title': 'Контакты'})
+# def contact(request):
+#     return render(request, 'women/contact.html', {'title': 'Контакты'})
 
 
 # def login(request):
@@ -174,6 +174,20 @@ class LoginUser(DataMixin, LoginView):
 def logout_user(request):
     logout(request)
     return redirect('login')
+
+class ContactFormView(DataMixin, FormView):
+    form_class = ContactForm
+    template_name = 'women/contact.html'
+    success_url = reverse_lazy('home')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Обратная связь')
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def form_valid(self, form):
+        print(form.cleaned_data)
+        return redirect('home')
 
 
 def pageNotFound(request, exception):
